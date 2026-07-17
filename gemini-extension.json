@@ -1,6 +1,6 @@
 {
   "name": "frugal",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Cloud cost awareness for agents. Check usage before spending on metered services; tear down what you provision.",
   "contextFileName": "AGENTS.md"
 }

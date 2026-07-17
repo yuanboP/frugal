@@ -55,6 +55,18 @@ test('agent CLI dual-rail fires only when an API key env is set', () => {
   if (saved.o) process.env.OPENAI_API_KEY = saved.o;
 });
 
+test('detects round-2 indie services', () => {
+  assert.deepStrictEqual(names('heroku addons:create heroku-postgresql'), ['Heroku']);
+  assert.deepStrictEqual(names('render deploys create'), ['Render']);
+  assert.deepStrictEqual(names('netlify deploy --prod'), ['Netlify']);
+  assert.deepStrictEqual(names('doctl compute droplet list'), ['DigitalOcean']);
+  assert.deepStrictEqual(names('atlas clusters list'), ['MongoDB Atlas']);
+  assert.deepStrictEqual(names('resend emails send'), ['Email API']);
+  assert.deepStrictEqual(names('sentry-cli releases new v1'), ['Observability/logs']);
+  assert.deepStrictEqual(names('auth0 apps list'), ['Auth provider']);
+  assert.deepStrictEqual(names('cld admin usage'), ['Media/vector store']);
+});
+
 test('ignores prose mentions and non-command positions', () => {
   assert.deepStrictEqual(names('git commit -m "fix vercel deploy"'), []);
   assert.deepStrictEqual(names('grep neon file.txt'), []);

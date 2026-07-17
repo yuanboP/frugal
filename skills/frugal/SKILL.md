@@ -72,7 +72,9 @@ money that is not yours.
 
 Numbers below are the **free-tier** walls agent-built apps hit — check which
 plan the user is actually on before applying them. Paid plan tables, overage
-prices, and sources: `references/providers.md` in this skill.
+prices, and sources: `references/providers.md` (core cloud) and
+`references/indie-services.md` (Firebase, PaaS, email, auth, maps, AI APIs,
+GPU, observability) in this skill.
 
 | Provider | Free tier key numbers | What blows first | Check usage |
 |---|---|---|---|
@@ -86,6 +88,17 @@ prices, and sources: `references/providers.md` in this skill.
 | GitHub | 2,000 private Actions min/mo (public unlimited), 120 Codespaces core-hr, 500 MB storage | Actions minutes in 2-3 weeks of auto-deploys — then workflows SILENTLY fail at the $0 default limit | `gh api /users/{u}/settings/billing/usage` |
 | Supabase | 2 active projects, 500 MB DB, 5 GB egress, 50k MAU | 7-day idle AUTO-PAUSE kills deploy-and-forget apps; Pro: each extra project/branch bills ~$10/mo uncapped by Spend Cap | dashboard org usage |
 | AWS/GCP/Azure | Lambda/Az Functions 1M req + 400K GB-s/mo; Cloud Run 2M req but 1 GB egress; AWS $200 credit / 6-mo auto-close | NAT gateway (~$33/mo idle), forgotten instances, egress | `aws ce get-cost-and-usage` / `az consumption usage list` |
+| Firebase | Spark: 50K Firestore reads + 20K writes/day, hard stop (but no Functions/Storage); Blaze: NO cap | unbounded onSnapshot loops, recursive triggers, unset maxInstances | console usage pages; no CLI spend command |
+| Heroku / Render | Heroku: NO free tier, NO cap; Render Hobby: 5 GB/mo bandwidth | zombie add-ons billing 24/7; AI-crawler bandwidth | `heroku addons` / Render dashboard |
+| Netlify / DigitalOcean | Netlify: 300 credits/mo, hard-pauses; DO: NO cap, non-static component $5+/mo | prod deploy = 15 credits (~20/mo); orphan droplets/DBs | `doctl balance get` |
+| MongoDB Atlas / PlanetScale | M0 free 512 MB throttled; Flex caps $30/mo; Dedicated UNCAPPED; PlanetScale: no free tier | autoscale up-in-10min-down-after-24h; $0.09/GB egress | `atlas api invoices` |
+| Email (Resend/SendGrid/Mailgun) | SendGrid free DEAD (60-day trial); others 100/day hard stop | contact-storage overage recurs monthly; Mailgun cap OFF by default | provider dashboards |
+| Auth (Clerk/Auth0/Firebase) | 50K MRU / 25K MAU (bots COUNT) / 50K MAU | phone-OTP scaffolds = SMS pumping; SMS bills separately | provider dashboards |
+| Maps (Google/Mapbox) | per-SKU free calls (10K/5K/1K, NOT pooled); Mapbox 50K loads | unrestricted client keys, map remounts; NO caps on either | GCP console / Mapbox stats |
+| AI APIs (OpenAI/Anthropic/Replicate) | Anthropic: tier ceiling (real cap); OpenAI: alerts only; Replicate: credit | env API key flips agent CLIs to per-token billing; leaked keys | `claude /status`; console usage pages |
+| GPU (RunPod/Modal/Vast) | prepaid balance = de facto cap UNTIL auto-top-up; Modal $30/mo credit | idle pods, warm min_containers, stop != destroy | `runpodctl pod list` / `modal app list` / `vastai show instances` |
+| Observability (Datadog/CloudWatch/Sentry) | DD/CW: NO caps (alerts only); Sentry 5K errors/mo | tracesSampleRate 1.0, ID metric tags, Never-Expire retention | DD usage monitors / CW billing |
+| Media/vector (Cloudinary/Pinecone/Upstash) | 25 credits / 2 GB + 1M RU / 500K cmds | legacy Pinecone pods $81+/mo idle; Upstash hard cap exists but OFF | dashboards; `cld admin usage` |
 
 ## Paid-plan tripwires (fail-open walls)
 

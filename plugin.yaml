@@ -1,5 +1,5 @@
 name: frugal
-version: 0.2.0
+version: 0.3.0
 description: Cloud cost awareness for Hermes Agent, always-on context, bundled skill, and slash command.
 author: Aaron Pang
 provides_hooks:
