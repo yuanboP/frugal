@@ -1,5 +1,9 @@
 # frugal
 
+<p align="center">
+  <img src="assets/logo.png" width="280" alt="frugal — the guy who just found a $0.30 charge he does not recognize" />
+</p>
+
 **Cloud cost awareness for coding agents.** Agents deploy to Vercel, spin up
 Neon databases, run E2B sandboxes, push commits that trigger GitHub Actions —
 all metered — and non-technical users only find out on the monthly bill.
