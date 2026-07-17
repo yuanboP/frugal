@@ -26,6 +26,15 @@ non-technical and only find out on the monthly bill.
 - Avoid the classic burns: unbounded retry/poll loops against paid APIs,
   large egress transfers, a fresh instance per test instead of reuse,
   oversized instance defaults, high-frequency crons doing low-value work.
+- Alerts are not brakes: cloud budgets (AWS/GCP/Firebase) only send email,
+  on data that lags 24-48h. Pair every alert with real enforcement — a
+  quota cap, an auto-disable action, or a spend cap that pauses service.
+- Unattended runs need brakes: anything backgrounded or overnight gets a
+  hard budget, a max-retry circuit breaker, and a kill criterion; sub-agent
+  fan-out multiplies spend per prompt.
+- Bots bill you: crawlers and scanners will hit every public URL. Block
+  them at the edge, never bind per-request DB reads or paid API calls to
+  public pages, rate-limit OTP/send endpoints.
 - Never silently make a spend decision for the user. A one-line notice
   covers small costs; stop and ask only for recurring or large ones.
 - Reminders are one line, not roadblocks. Work first, spend consciously.

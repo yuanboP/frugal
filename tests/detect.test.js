@@ -33,6 +33,28 @@ test('git push triggers Actions reminder only when workflows exist', () => {
   fs.rmSync(withWf, { recursive: true, force: true });
 });
 
+test('detects cross-provider tripwires from pitfall mining', () => {
+  assert.deepStrictEqual(names('curl -H "Authorization: Bearer sk-proj-abc123def456ghi789jkl" api.example.com'), ['Exposed secret']);
+  assert.deepStrictEqual(names('git add .env src/index.ts'), ['Exposed secret']);
+  assert.deepStrictEqual(names('firebase deploy --only functions'), ['Firebase']);
+  assert.deepStrictEqual(names('gcloud services enable generativelanguage.googleapis.com'), ['Google GenAI enablement', 'GCP']);
+  assert.deepStrictEqual(names('twilio api:core:messages:create --to +1555'), ['Twilio']);
+  assert.deepStrictEqual(names('runpodctl get pod'), ['GPU cloud']);
+  assert.deepStrictEqual(names('aws logs create-log-group --log-group-name x'), ['Observability/logs', 'AWS']);
+});
+
+test('agent CLI dual-rail fires only when an API key env is set', () => {
+  const saved = { a: process.env.ANTHROPIC_API_KEY, o: process.env.OPENAI_API_KEY };
+  delete process.env.ANTHROPIC_API_KEY;
+  delete process.env.OPENAI_API_KEY;
+  assert.deepStrictEqual(names('claude -p "hi"'), []);
+  process.env.ANTHROPIC_API_KEY = 'test';
+  assert.deepStrictEqual(names('claude -p "hi"'), ['Agent CLI on API billing']);
+  delete process.env.ANTHROPIC_API_KEY;
+  if (saved.a) process.env.ANTHROPIC_API_KEY = saved.a;
+  if (saved.o) process.env.OPENAI_API_KEY = saved.o;
+});
+
 test('ignores prose mentions and non-command positions', () => {
   assert.deepStrictEqual(names('git commit -m "fix vercel deploy"'), []);
   assert.deepStrictEqual(names('grep neon file.txt'), []);

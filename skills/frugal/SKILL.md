@@ -46,6 +46,22 @@ money that is not yours.
   warm — it bills THREE ways), large egress transfers, provisioning a fresh
   instance per test instead of reusing one, oversized instance defaults,
   high-frequency crons doing low-value work.
+- **Alerts are not brakes.** AWS/GCP/Firebase budgets only send email, on
+  billing data that lags 24-48h — victims with alerts configured still
+  burned $25k+ past a $10 budget. Pair every alert with real enforcement:
+  quota caps, auto-disable actions, or a spend cap that pauses service.
+- **Unattended runs need brakes.** Background/overnight agent work gets a
+  hard budget, a max-retry circuit breaker (200+ retries of one failing
+  call is a documented pattern), and a kill criterion; sub-agent fan-out
+  multiplies token spend per prompt.
+- **Bots bill you.** Crawlers and scanners hit every public URL — Googlebot
+  alone generated 68M Firestore reads on one site. Block bot traffic at the
+  edge, never bind per-request DB reads or paid API calls to public pages,
+  rate-limit OTP/send endpoints.
+- **Pricing models change under you.** On any unexplained bill jump, check
+  the provider's pricing changelog BEFORE debugging your own code
+  (Cloudflare Workflows added per-step billing 2026-08; SendGrid killed its
+  free tier; Supabase repriced compute).
 - **Never silently make a spend decision for the user.** A one-line notice
   is enough for small costs; stop and ask only for recurring or large costs
   (new paid plan, production database, `terraform apply` on real infra).
@@ -93,4 +109,11 @@ When the user IS on a paid plan, these are the researched danger spots:
 - **Fly.io**: pure PAYG with **no billing alerts at all** — inventory
   machines/volumes regularly (`fly machine list`, `fly volumes list`).
 - **AWS/GCP/Azure**: no default caps — set `aws budgets` / `gcloud billing
-  budgets` / Azure cost alerts before provisioning anything.
+  budgets` / Azure cost alerts before provisioning anything (and remember
+  they only email, on lagged data).
+- **Firebase Blaze**: NO hard cap exists; Firestore read loops and
+  recursive triggers bill unbounded — set functions maxInstances and
+  restrict API keys before going live.
+- **No-cap vendors**: Mapbox (and several metered SaaS) offer no spend cap
+  at all — viral traffic means unbounded exposure; prefer cappable or
+  self-hostable alternatives for public pages.
