@@ -1,0 +1,2 @@
+description = "Show the frugal cost cheat-sheet and audit current spend surface"
+prompt = "Show the frugal cost cheat-sheet: list the metered-provider table from the frugal skill (provider, metered by, how to check usage, cheap alternative). Then scan the current project for anything that likely incurs cloud spend right now (deploy configs, provisioned resources, running sandboxes, crons) and report it in a few lines. {{args}}"

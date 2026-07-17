@@ -1,0 +1,16 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "frugal",
+  "description": "Cloud cost awareness for agents.",
+  "owner": {
+    "name": "Aaron Pang"
+  },
+  "plugins": [
+    {
+      "name": "frugal",
+      "description": "Reminds the agent to check usage/billing before spending on metered cloud services, and to tear down what it provisions.",
+      "source": "./",
+      "category": "productivity"
+    }
+  ]
+}
