@@ -29,12 +29,9 @@ function hasWorkflows(input) {
 
 const PROVIDERS = [
   // ---- cross-provider tripwires ----
-  { name: 'Exposed secret',
-    pattern: /AIza[0-9A-Za-z_-]{35}|sk-ant-[A-Za-z0-9_-]{16,}|\bsk-[A-Za-z0-9_-]{20,}|r8_[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{30,}|AKIA[0-9A-Z]{16}/,
-    hint: 'an API key literal appears in this command — leaked keys are the #1 cause of 5-6 figure bills ($55k-$600k reported on X). Keep keys in untracked .env, rotate anything that may have left the machine, restrict scopes/quotas' },
-  { name: 'Exposed secret',
-    pattern: /(^|[;&|(]\s*)git\s+(add|commit)\b.*\.env\b/,
-    hint: 'a .env file is being staged/committed — scrapers monitor repos and abuse leaked keys within hours. Keep .env in .gitignore; if it was ever pushed, rotate every key in it now' },
+  // ponytail: no secret/leak detection here — that's a security concern,
+  // not a billing one. frugal only covers normal usage where the developer
+  // (or their agent) forgot to check how a service is metered.
   { name: 'Agent CLI on API billing',
     pattern: cmd('claude|codex'),
     when: () => Boolean(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY),
@@ -69,11 +66,9 @@ const PROVIDERS = [
   { name: 'Supabase', pattern: cmd('supabase'),
     hint: 'free: 2 active projects, 500 MB DB, AUTO-PAUSES after 7 idle days. Egress is POOLED across all services: 5 GB free then $0.09/GB — media served from Supabase Storage is the #1 burner ($600/mo cases); put files on R2/CDN. Pro: every extra project/branch bills ~$10/mo compute NOT blocked by Spend Cap. `supabase start` is local and free' },
   { name: 'Firebase', pattern: cmd('firebase'),
-    hint: 'Blaze has NO hard cap, budgets only EMAIL (lag hrs-days); Spark hard-stops but cannot run Functions/Storage (Blaze forced since 2026-02). First blown: Firestore 50K reads/day — one unbounded onSnapshot on 500 docs x 100 DAU doubles it day one. Check onWrite triggers for recursion, SET maxInstances (1st-gen default is UNBOUNDED), restrict browser keys (/__/firebase/init.json is public)' },
-  { name: 'Google GenAI enablement', pattern: cmd('gcloud\\s+services\\s+enable\\s+\\S*(?:generativelanguage|aiplatform)'),
-    hint: 'enabling GenAI makes EVERY unrestricted key in this project a billable Gemini credential — including public Firebase browser keys and pre-2024 legacy keys ($15k-$160k abuse incidents). Restrict ALL keys and set per-day quotas BEFORE enabling; budgets only email' },
+    hint: 'Blaze has NO hard cap, budgets only EMAIL (lag hrs-days); Spark hard-stops but cannot run Functions/Storage (Blaze forced since 2026-02). First blown: Firestore 50K reads/day — one unbounded onSnapshot on 500 docs x 100 DAU doubles it day one. Check onWrite triggers for recursion, SET maxInstances (1st-gen default is UNBOUNDED)' },
   { name: 'Twilio', pattern: cmd('twilio'),
-    hint: 'SMS pumping turns open OTP endpoints into $2k-$18k/day fraud (refunds partial). Verify bills $0.05/success + SMS per ATTEMPT even undelivered, intl to ~$0.39/segment; NO spend-cap setting exists — the only stop is prepaid balance at $0, and auto-recharge (default) removes even that. Rate-limit sends, lock BOTH geo settings, Fraud Guard covers Verify only' },
+    hint: 'Verify bills $0.05/success PLUS a channel fee per ATTEMPT — even undelivered or retried sends cost money, international routes run far higher than US. NO spend-cap setting exists on the account; the only stop is prepaid balance at $0, and auto-recharge (default) removes even that. Check balance before high-retry flows: `twilio api:core:balance:fetch`' },
   { name: 'GPU cloud', pattern: cmd('runpodctl|vastai|modal'),
     hint: 'GPU time bills wall-clock even idle/crashed ($23-$340 per forgotten night; warm min_containers ~$1,800/mo). RunPod/Vast prepaid is a de facto hard cap UNTIL auto-top-up is enabled; Modal budgets are OFF by default; stopped pods still bill disk, Vast stop != destroy. Verify dead before ending: `runpodctl pod list` / `modal app list` / `vastai show instances`' },
   { name: 'Observability/logs', pattern: cmd('datadog-agent|sentry-cli|aws\\s+logs\\s+create-log-group'),
@@ -97,7 +92,7 @@ const PROVIDERS = [
   { name: 'Email API', pattern: cmd('resend|mailgun'),
     hint: 'SendGrid free is DEAD (60-day trial, then all sends die); Resend/Mailgun free = 100 emails/day hard stop. Resend caps overage at 5x quota BY DEFAULT; Mailgun\'s cap is OFF by default — set it. SendGrid Marketing: one CSV import = recurring monthly contact overage' },
   { name: 'Auth provider', pattern: cmd('auth0'),
-    hint: 'MAU billing: Auth0 free 25K MAU and BOTS COUNT toward it; Clerk free 50K MRU (bots free); Firebase Auth 50K MAU but phone-OTP SMS bills separately after 10/day (US $0.01, intl to $0.46). #1 trap: phone-OTP scaffolds = SMS pumping surface. No hard caps on any paid tier' },
+    hint: 'MAU billing: Auth0 free 25K MAU and BOTS COUNT toward it; Clerk free 50K MRU (bots free); Firebase Auth 50K MAU but phone-OTP SMS bills separately per message (US $0.01, intl to $0.46) — easy to miss since it is a second, unrelated meter. No hard caps on any paid tier' },
   { name: 'Media/vector store', pattern: cmd('cld|pinecone|upstash'),
     hint: 'legacy Pinecone pod indexes bill $81+/mo while idle (serverless free: 2 GB + 1M RU; Standard has a $50/mo floor, alerts only). Upstash has the ONLY real hard cap in this category (per-DB max monthly budget) but it is OFF by default — set it. Cloudinary free = 25 credits/rolling-30d, suspends instead of billing' },
   { name: 'IaC provisioning', pattern: cmd('terraform\\s+apply|tofu\\s+apply|pulumi\\s+up'),

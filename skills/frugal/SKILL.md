@@ -7,8 +7,11 @@ description: >
   bill by usage, and the user may not understand why the bill exploded. Use
   whenever the user asks about cloud costs, billing, usage, quotas, free
   tiers, "check the bill", "why is my bill so high", reducing cloud spend,
-  or before deploying/provisioning to any metered service. Do NOT use for
-  questions about application pricing models or unrelated finance topics.
+  or before deploying/provisioning to any metered service. Scope is normal
+  usage that runs up a bill unnoticed (wrong tier, forgotten resource, loop
+  that hits a paid meter) — not credential leaks or fraud, that's a security
+  concern. Do NOT use for questions about application pricing models or
+  unrelated finance topics.
 license: MIT
 ---
 
@@ -93,9 +96,9 @@ GPU, observability) in this skill.
 | Netlify / DigitalOcean | Netlify: 300 credits/mo, hard-pauses; DO: NO cap, non-static component $5+/mo | prod deploy = 15 credits (~20/mo); orphan droplets/DBs | `doctl balance get` |
 | MongoDB Atlas / PlanetScale | M0 free 512 MB throttled; Flex caps $30/mo; Dedicated UNCAPPED; PlanetScale: no free tier | autoscale up-in-10min-down-after-24h; $0.09/GB egress | `atlas api invoices` |
 | Email (Resend/SendGrid/Mailgun) | SendGrid free DEAD (60-day trial); others 100/day hard stop | contact-storage overage recurs monthly; Mailgun cap OFF by default | provider dashboards |
-| Auth (Clerk/Auth0/Firebase) | 50K MRU / 25K MAU (bots COUNT) / 50K MAU | phone-OTP scaffolds = SMS pumping; SMS bills separately | provider dashboards |
+| Auth (Clerk/Auth0/Firebase) | 50K MRU / 25K MAU (bots COUNT) / 50K MAU | phone-OTP is a second, easy-to-miss meter — SMS bills per message on top of MAU | provider dashboards |
 | Maps (Google/Mapbox) | per-SKU free calls (10K/5K/1K, NOT pooled); Mapbox 50K loads | unrestricted client keys, map remounts; NO caps on either | GCP console / Mapbox stats |
-| AI APIs (OpenAI/Anthropic/Replicate) | Anthropic: tier ceiling (real cap); OpenAI: alerts only; Replicate: credit | env API key flips agent CLIs to per-token billing; leaked keys | `claude /status`; console usage pages |
+| AI APIs (OpenAI/Anthropic/Replicate) | Anthropic: tier ceiling (real cap); OpenAI: alerts only; Replicate: credit | env API key flips agent CLIs to per-token billing without warning | `claude /status`; console usage pages |
 | GPU (RunPod/Modal/Vast) | prepaid balance = de facto cap UNTIL auto-top-up; Modal $30/mo credit | idle pods, warm min_containers, stop != destroy | `runpodctl pod list` / `modal app list` / `vastai show instances` |
 | Observability (Datadog/CloudWatch/Sentry) | DD/CW: NO caps (alerts only); Sentry 5K errors/mo | tracesSampleRate 1.0, ID metric tags, Never-Expire retention | DD usage monitors / CW billing |
 | Media/vector (Cloudinary/Pinecone/Upstash) | 25 credits / 2 GB + 1M RU / 500K cmds | legacy Pinecone pods $81+/mo idle; Upstash hard cap exists but OFF | dashboards; `cld admin usage` |
@@ -125,8 +128,8 @@ When the user IS on a paid plan, these are the researched danger spots:
   budgets` / Azure cost alerts before provisioning anything (and remember
   they only email, on lagged data).
 - **Firebase Blaze**: NO hard cap exists; Firestore read loops and
-  recursive triggers bill unbounded — set functions maxInstances and
-  restrict API keys before going live.
+  recursive triggers bill unbounded — set functions maxInstances before
+  going live.
 - **No-cap vendors**: Mapbox (and several metered SaaS) offer no spend cap
   at all — viral traffic means unbounded exposure; prefer cappable or
   self-hostable alternatives for public pages.

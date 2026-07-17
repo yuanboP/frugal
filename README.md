@@ -29,40 +29,28 @@ pi, Cursor, Windsurf, Cline, and Kiro — one ruleset, one source of truth.
 
 ## How it saves you money
 
-```mermaid
-flowchart LR
-    A["Agent runs<br/>vercel deploy"] --> B{frugal<br/>PreToolUse hook}
-    B -->|"first touch<br/>this session"| C["one-line reminder injected:<br/>free-tier walls · #1 trap ·<br/>spend-cap status · usage command"]
-    B -->|"already reminded /<br/>daily cap (5) reached"| D[silent]
-    C --> E["agent checks plan + usage,<br/>tells user in one line,<br/>proceeds consciously"]
-```
-
 Two layers, both context-cheap (~2 KB of rules per session + at most 5
-one-line reminders per day):
+one-line reminders per day, never blocking):
 
-```mermaid
-flowchart TB
-    subgraph always["SessionStart — rules (always on, ~2 KB)"]
-        R1["check usage on first touch · announce paid resources ·<br/>ephemeral things must die · alerts are not brakes ·<br/>paid plans fail OPEN · bots bill you"]
-    end
-    subgraph jit["PreToolUse — data (just-in-time, per provider)"]
-        K1["vercel → Vercel numbers"]
-        K2["wrangler r2 → R2 numbers"]
-        K3["git push + workflows/ → Actions minutes"]
-        K4["sk-… in command → key-leak warning"]
-    end
-    always -.->|"how to behave"| Agent
-    jit -.->|"exact numbers, when relevant"| Agent
-```
+- **Session rules** (SessionStart, always on): check usage on first touch,
+  announce paid resources, kill ephemeral things, remember alerts aren't
+  brakes and paid plans fail open.
+- **Just-in-time data** (PreToolUse, per command): `vercel` → Vercel's
+  numbers, `wrangler r2` → R2's numbers, a `git push` in a repo with
+  `.github/workflows/` → Actions minutes — the exact numbers land only when
+  they're relevant, once per provider per session.
 
-Real incidents from the 272-story X corpus this plugin internalizes — and
-the tripwire that now fires first:
+This is scoped to **normal usage that quietly runs up a bill** — wrong
+tier, a forgotten resource, a loop that hits a paid meter, a config default
+nobody checked. Not credential leaks or fraud; that's a security problem,
+not a billing-awareness one. Real incidents from the 272-story X corpus
+this plugin internalizes — and the tripwire that now fires first:
 
 | Real bill | What happened | frugal tripwire |
 |---|---|---|
-| **$600,000** | leaked OpenAI key abused | key-shaped literal in a command / `.env` staged → warn + rotate |
 | **$36,000/mo** | Cloudflare queue re-enqueue loop (3.13B KV writes) | `wrangler` → "NO hard cap anywhere on CF — guard recursion" |
 | **$104,000** | Netlify viral-traffic bill (pre-reform) | `netlify` → credits system + hard-pause explained |
+| **$46,000** | viral traffic hit Vercel with Bot Protection off (default) | `vercel` → Bot Protection is free but OFF by default |
 | **$25,672** | GCP spend blew past a $10 budget (alerts lag 24-48h) | rule: **alerts are not brakes** — pair with quota caps |
 | **~$700/mo** | agent push loop running full CI on macOS runners | `git push` with workflows → timeout-minutes + concurrency + macOS≈10x |
 | **$5,000/mo** | Firestore useEffect read loop at 100 users | `firebase` → per-READ billing + maxInstances + recursion check |

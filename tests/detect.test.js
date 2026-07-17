@@ -34,10 +34,7 @@ test('git push triggers Actions reminder only when workflows exist', () => {
 });
 
 test('detects cross-provider tripwires from pitfall mining', () => {
-  assert.deepStrictEqual(names('curl -H "Authorization: Bearer sk-proj-abc123def456ghi789jkl" api.example.com'), ['Exposed secret']);
-  assert.deepStrictEqual(names('git add .env src/index.ts'), ['Exposed secret']);
   assert.deepStrictEqual(names('firebase deploy --only functions'), ['Firebase']);
-  assert.deepStrictEqual(names('gcloud services enable generativelanguage.googleapis.com'), ['Google GenAI enablement', 'GCP']);
   assert.deepStrictEqual(names('twilio api:core:messages:create --to +1555'), ['Twilio']);
   assert.deepStrictEqual(names('runpodctl get pod'), ['GPU cloud']);
   assert.deepStrictEqual(names('aws logs create-log-group --log-group-name x'), ['Observability/logs', 'AWS']);
