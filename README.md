@@ -58,6 +58,8 @@ spend surface.
 
 ## Install
 
+npm package: [`@yuanbopang/frugal`](https://www.npmjs.com/package/@yuanbopang/frugal)
+
 ### Claude Code
 
 ```
@@ -65,44 +67,74 @@ spend surface.
 /plugin install frugal
 ```
 
-Restart or start a new session; you should see `FRUGAL MODE ACTIVE`.
+Start a new session; you should see `FRUGAL MODE ACTIVE`.
 
 ### Codex
 
-Install the plugin; it reuses the same `hooks/hooks.json` and skills. The
-runtime detects Codex via `PLUGIN_DATA` and emits Codex-shaped hook output.
+```
+codex plugin marketplace add yuanboP/frugal
+codex plugin add frugal@frugal
+```
 
-### GitHub Copilot
+Same hooks, Codex-shaped output (detected via `PLUGIN_DATA`). Covers the
+Codex desktop app too — restart it after installing.
 
-Uses `hooks/copilot-hooks.json` (`sessionStart` injection) via
-`.github/plugin/`.
+### GitHub Copilot CLI
+
+```
+copilot plugin marketplace add yuanboP/frugal
+copilot plugin install frugal@frugal
+```
+
+Or the slash equivalents inside a session (`/plugin marketplace add ...`).
+Session-start injection via `hooks/copilot-hooks.json`.
+
+### grok
+
+```
+grok plugin install https://github.com/yuanboP/frugal.git --trust
+```
+
+The skill (rules + cheat-sheet) activates on billing/deploy topics; grok
+does not execute Claude-style lifecycle hooks.
 
 ### Gemini CLI
 
-`gemini-extension.json` points `contextFileName` at `AGENTS.md` — the
-compact ruleset loads as always-on context.
+```
+gemini extensions install https://github.com/yuanboP/frugal
+```
+
+Loads `AGENTS.md` as always-on context via `gemini-extension.json`.
 
 ### OpenCode
 
 ```json
-{ "plugin": ["./.opencode/plugins/frugal.mjs"] }
+{ "plugin": ["@yuanbopang/frugal"] }
 ```
 
-Appends the ruleset to the system prompt every turn and registers the
-skills directory.
+Or from a checkout: `{ "plugin": ["./.opencode/plugins/frugal.mjs"] }`.
+Appends the ruleset every turn and registers the skills directory.
 
 ### pi
 
-The `pi` block in `package.json` loads `pi-extension/index.js`, which
-appends the ruleset via `before_agent_start`.
+```
+pi install git:github.com/yuanboP/frugal
+```
 
-### Cursor / Windsurf / Cline / Kiro / Qoder
+Injects the ruleset via `before_agent_start`.
+
+### Cursor / Windsurf / Cline / Kiro
 
 Static rule copies ship in `.cursor/rules/`, `.windsurf/rules/`,
-`.clinerules/`, `.kiro/steering/`, `.qoder/rules/` — picked up automatically
-when the repo/plugin is present. Qoder users can additionally wire the
-per-command reminder by copying `hooks/qoder-hooks.json` into their
-settings.
+`.clinerules/`, `.kiro/steering/` — picked up automatically from a checkout.
+Cursor user-level install: copy `.cursor/rules/frugal.mdc` to
+`~/.cursor/rules/`.
+
+### Qoder / CodeWhale / Swival (AGENTS.md hosts)
+
+These auto-load `AGENTS.md` from the repo root — zero setup from a checkout.
+Qoder can additionally wire the per-command reminder via
+`hooks/qoder-hooks.json`.
 
 ## How it works
 

@@ -16,6 +16,8 @@
 
 ## 安装
 
+npm 包：[`@yuanbopang/frugal`](https://www.npmjs.com/package/@yuanbopang/frugal)
+
 **Claude Code**：
 
 ```
@@ -23,13 +25,21 @@
 /plugin install frugal
 ```
 
-**Codex**：`codex plugin marketplace add https://github.com/yuanboP/frugal.git && codex plugin add frugal@frugal`
+**Codex**：`codex plugin marketplace add yuanboP/frugal && codex plugin add frugal@frugal`
+
+**Copilot CLI**：`copilot plugin marketplace add yuanboP/frugal && copilot plugin install frugal@frugal`
 
 **grok**：`grok plugin install https://github.com/yuanboP/frugal.git --trust`
 
-**Cursor / Windsurf / Cline / Kiro / Qoder**：静态规则副本随仓库自动生效；Cursor 用户级安装：把 `.cursor/rules/frugal.mdc` 拷到 `~/.cursor/rules/`。
+**Gemini CLI**：`gemini extensions install https://github.com/yuanboP/frugal`
 
-**Gemini CLI / OpenCode / pi**：见 [English README](README.md#install)。
+**OpenCode**：`opencode.json` 里加 `{ "plugin": ["@yuanbopang/frugal"] }`
+
+**pi**：`pi install git:github.com/yuanboP/frugal`
+
+**Cursor / Windsurf / Cline / Kiro**：静态规则副本随仓库自动生效；Cursor 用户级安装：把 `.cursor/rules/frugal.mdc` 拷到 `~/.cursor/rules/`。
+
+**Qoder / CodeWhale / Swival**：自动读仓库根的 `AGENTS.md`，零配置。
 
 ## 测试
 
