@@ -18,18 +18,24 @@
 
 ---
 
-Agent 部署 Vercel、开 Neon 数据库、跑 E2B 沙箱、一次 push 触发 GitHub Actions——全都按量计费，而不懂技术的用户往往月底看账单才傻眼。frugal 让 agent 花钱前先睁眼：查用量、一句话报备付费动作、用完拆干净。
+Agent 部署 Vercel、开 Neon 数据库、跑 E2B 沙箱、一次 push 触发 GitHub Actions——全都按量计费，而不懂技术的用户往往月底看账单才傻眼。frugal 让 agent 花钱前先睁眼：首次触碰给出 free-tier 数字与 hard-pause / fail-open 形态，可选查用量，持久付费资源一句话报备，临时资源用完拆干净——**不拦截命令**。
 
-支持 Claude Code、Codex、GitHub Copilot、Qoder、Gemini CLI、OpenCode、pi、Cursor、Windsurf、Cline、Kiro——一套规则,一个真相来源。
+支持 Claude Code、Codex、GitHub Copilot、Qoder、Gemini CLI、OpenCode、pi、Cursor、Windsurf、Cline、Kiro——一套规则，一个真相来源。
+
+### 为什么要插件，而不是「跟模型说一句注意成本」？
+
+模型自带的是 **训练截止时冻住的计费记忆**：免费额度、默认开关、「这家云怎么算钱」。云厂商的定价和 fail-open 陷阱每个季度都在变（Workflows 按步计费、Spend Management 默认只通知、免费档悬崖），agent 还在用「上一次 train 的历史故事」。
+
+frugal 把配额数字和 tripwire **放在仓库里**——可版本化、可调研、可测试——并在每次会话 / 碰计费 CLI 时注入 agent 的 loop。升级包（或 pull 仓库）后，loop 拿到的是 **现行计费**，而不是权重里还记得的旧 free tier。
 
 ## 它如何帮你省钱
 
-两层机制，上下文成本都很低（每会话约 1.5KB 规则 + 每天最多 5 条完整提醒，超出后新服务仍有一行纯数字提示，绝不挡路），并带吵闹度档位：
+两层机制，上下文成本都很低（每会话约 1.7KB 规则 + 每天最多 5 条完整提醒，超出后新服务仍有一行纯数字提示，绝不挡路），并带吵闹度档位：
 
 | 档位 | 注入内容 | 适用 |
 |---|---|---|
-| **quiet** | 只说计费形态 | 懂行、嫌吵 |
-| **normal**（默认） | 形态 + 一个 trap；查用量可选 | 大多数人 |
+| **quiet** | 只给 free-tier / 关键额度数字 | 懂行、嫌吵 |
+| **normal**（默认） | 数字 + 一个 trap；查用量可选 | 大多数人 |
 | **strict** | + 真实账单金额；危险动作要确认 | 非技术 / vibe coding |
 
 - **会话规则**（SessionStart）：首次碰服务一句话说明计费形态、持久付费资源先报备、临时资源必须死、只在可怕消耗时升级提醒用户。

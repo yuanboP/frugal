@@ -21,15 +21,28 @@
 Agents deploy to Vercel, spin up Neon databases, run E2B sandboxes, push
 commits that trigger GitHub Actions — all metered — and non-technical users
 only find out on the monthly bill. frugal makes the agent spend consciously:
-check usage before spending, announce paid resources in one line, tear down
-what it provisions.
+surface free-tier numbers and fail-open vs hard-pause on first touch, optional
+usage digs, one-line notice before lasting paid resources, and tear down of
+what it left running. It never blocks the command.
 
 Works across Claude Code, Codex, GitHub Copilot, Qoder, Gemini CLI, OpenCode,
 pi, Cursor, Windsurf, Cline, and Kiro — one ruleset, one source of truth.
 
+### Why a plugin, not “just tell the model to be careful”?
+
+LLMs ship with **frozen training-cut knowledge** of free tiers, defaults, and
+“how this cloud bills.” Cloud pricing and fail-open traps move every quarter
+(Workflows per-step billing, Spend Management notify-only, free-tier cliffs).
+The model still “remembers” last year’s story.
+
+frugal keeps the numbers and tripwires **in the repo** — versioned, researched,
+testable — and injects them into the agent loop on each session / pre-CLI hit.
+Update the package (or pull the repo) and the loop gets **current billing**,
+not whatever the weights last memorized.
+
 ## How it saves you money
 
-Two layers, both context-cheap (~1.5 KB of rules per session + at most 5
+Two layers, both context-cheap (~1.7 KB of rules per session + at most 5
 full reminders per day — after that, new services still get a numbers-only
 line — never blocking), with intensity levels like a volume knob:
 
