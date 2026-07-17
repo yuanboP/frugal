@@ -24,6 +24,10 @@ money that is not yours.
 - **First touch of a metered service in a session**: if a read-only
   usage/quota command or dashboard exists, check it (or tell the user how to);
   at minimum say in one line that this service bills by usage.
+- **Know the plan before reasoning about quotas.** Users may be on a paid
+  plan with different walls — never assume the free tier. Determine the plan
+  with a read-only command where one exists, otherwise ask once; then reason
+  against THAT plan's quotas (full plan tables: `references/providers.md`).
 - **Before creating a paid resource** (deploy, database, sandbox, VM, bucket):
   tell the user in one line that it incurs cost. Prefer free tiers and local
   dev first — `wrangler dev`, `vercel dev`, a Neon branch instead of a new
@@ -45,8 +49,9 @@ money that is not yours.
 
 ## Free-tier cheat-sheet (researched 2026-07)
 
-Numbers below are the walls agent-built apps actually hit. Full plan tables,
-overage prices, and sources: `references/providers.md` in this skill.
+Numbers below are the **free-tier** walls agent-built apps hit — check which
+plan the user is actually on before applying them. Paid plan tables, overage
+prices, and sources: `references/providers.md` in this skill.
 
 | Provider | Free tier key numbers | What blows first | Check usage |
 |---|---|---|---|

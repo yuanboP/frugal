@@ -45,7 +45,9 @@ process.stdin.on('end', () => {
 
   const context =
     fresh.map((h) => `frugal: this command touches ${h.name} (metered billing — ${h.hint}).`).join('\n') +
-    '\nBefore spending more: check current usage/spend if a read-only command or dashboard exists, ' +
+    '\nBefore spending more: find out which plan the user is actually on — do NOT assume the free tier ' +
+    '(the numbers above are free-tier walls; paid plans have different quotas, see the frugal skill references). ' +
+    'Check current usage/spend if a read-only command or dashboard exists, ' +
     'tell the user in one line if this action incurs real cost, and tear down anything you provision for testing.';
 
   finish(context);

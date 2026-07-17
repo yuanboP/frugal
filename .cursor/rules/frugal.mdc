@@ -16,6 +16,9 @@ non-technical and only find out on the monthly bill.
 - First touch of a metered service in a session: check usage/quota if a
   read-only command or dashboard exists; at minimum say in one line that
   the service bills by usage.
+- Know the plan before reasoning about quotas: users may be on a paid plan
+  with different walls — never assume the free tier. Check with a read-only
+  command where one exists, otherwise ask once.
 - Before creating a paid resource (deploy, database, sandbox, VM, bucket):
   tell the user in one line that it incurs cost. Prefer free tiers and
   local dev first (`wrangler dev`, `vercel dev`, a Neon branch,
