@@ -29,16 +29,22 @@ pi, Cursor, Windsurf, Cline, and Kiro — one ruleset, one source of truth.
 
 ## How it saves you money
 
-Two layers, both context-cheap (~2 KB of rules per session + at most 5
-one-line reminders per day, never blocking):
+Two layers, both context-cheap (~1.5 KB of rules per session + at most 5
+full reminders per day — after that, new services still get a numbers-only
+line — never blocking), with intensity levels like a volume knob:
 
-- **Session rules** (SessionStart, always on): check usage on first touch,
-  announce paid resources, kill ephemeral things, remember alerts aren't
-  brakes and paid plans fail open.
-- **Just-in-time data** (PreToolUse, per command): `vercel` → Vercel's
-  numbers, `wrangler r2` → R2's numbers, a `git push` in a repo with
-  `.github/workflows/` → Actions minutes — the exact numbers land only when
-  they're relevant, once per provider per session.
+| Level | Session + inject | When to use |
+|---|---|---|
+| **quiet** | Free-tier / key quota numbers only | Hate noise but still want numbers |
+| **normal** (default) | Numbers + one trap; dig optional | Most people |
+| **strict** | + real-bill context; confirm scary actions | Non-technical / vibe-coding |
+
+- **Session rules** (SessionStart): one short line on first touch, announce
+  lasting paid resources, kill ephemeral things, escalate only for scary spend.
+- **Just-in-time data** (PreToolUse): `vercel` → short Vercel line,
+  `wrangler r2` → R2, `git push` with workflows → Actions — once per provider
+  per session. Horror-dollar amounts stay in **strict** (and the skill), not
+  every deploy.
 
 This is scoped to **normal usage that quietly runs up a bill** — wrong
 tier, a forgotten resource, a loop that hits a paid meter, a config default
@@ -50,7 +56,7 @@ this plugin internalizes — and the tripwire that now fires first:
 |---|---|---|
 | **$36,000/mo** | Cloudflare queue re-enqueue loop (3.13B KV writes) | `wrangler` → "NO hard cap anywhere on CF — guard recursion" |
 | **$104,000** | Netlify viral-traffic bill (pre-reform) | `netlify` → credits system + hard-pause explained |
-| **$46,000** | viral traffic hit Vercel with Bot Protection off (default) | `vercel` → Bot Protection is free but OFF by default |
+| **$46,000** | viral traffic hit Vercel; Spend Management only emailed | `vercel` → Spend Management notifies at $200 — enable auto-pause |
 | **$25,672** | GCP spend blew past a $10 budget (alerts lag 24-48h) | rule: **alerts are not brakes** — pair with quota caps |
 | **~$700/mo** | agent push loop running full CI on macOS runners | `git push` with workflows → timeout-minutes + concurrency + macOS≈10x |
 | **$5,000/mo** | Firestore useEffect read loop at 100 users | `firebase` → per-READ billing + maxInstances + recursion check |
@@ -58,30 +64,23 @@ this plugin internalizes — and the tripwire that now fires first:
 
 ## What it does
 
-**1. Session rules** — injected at session start:
+**1. Session rules** — injected at session start (mode-scaled).
 
-- First touch of a metered service → check usage/quota, or at least say the
-  service bills by usage.
-- Before creating a paid resource → one-line notice; prefer free tier and
-  local dev (`wrangler dev`, `vercel dev`, Neon branches, `supabase start`).
-- Ephemeral things must die: kill sandboxes, delete test resources, stop
-  idle Codespaces in the same session.
-- Never silently make a spend decision for the user.
-
-**2. In-the-moment reminders** — a PreToolUse hook watches shell commands.
-When one touches a billable CLI, a one-line reminder with the decisive
-numbers lands in the agent's context — once per provider per session, never
-blocking:
+**2. In-the-moment reminders** — PreToolUse watches shell commands. Mode
+picks how loud each hit is — once per provider per session, never blocking:
 
 ```
-frugal: this command touches Neon (metered billing — free: 100 CU-hr/mo per
-project, 0.5 GB storage, 5 GB egress — overrun SUSPENDS the DB until next
-month. Polling defeats the 5-min autosuspend...)
+# normal (default) — free-tier numbers + one trap; dig optional
+frugal: Vercel — Hobby (non-commercial): 1M inv + 1M edge reqs, 360 GB-hr mem,
+100 GB transfer, 100 deploys/day — hard-pauses ~30d at quota. Pro fails open.
+Spend Management defaults to notify-only at $200 — enable its auto-pause for
+a real stop. Optional: `vercel usage`.
 ```
 
-Detection is sub-service aware: `wrangler r2` gets the R2 free-tier numbers,
-`gh workflow run` gets Actions minutes, and `git push` in a repo with
-`.github/workflows/` warns that the push itself burns Actions minutes.
+`brief` always carries the decisive free-tier numbers (what agent needs to
+reason). Horror dollars stay in **strict**. Dig is optional (skip if no creds).
+Detection is sub-service aware: `wrangler r2`, `gh workflow run`, `git push`
+with workflows, dual-rail agent CLI when an API key is in the env.
 
 **3. Researched quota data** — the reminders and the skill's cheat-sheet
 carry real numbers (researched 2026-07, dual-engine: parallel Claude web
@@ -96,8 +95,9 @@ Covered: Vercel, Cloudflare (Workers/R2/KV/D1), Neon, Railway, Fly.io, E2B,
 Browserbase, GitHub (Actions/Codespaces), Supabase, AWS/GCP/Azure,
 Terraform/Pulumi.
 
-**4. `/frugal`** — show the cost cheat-sheet and audit the current project's
-spend surface.
+**4. `/frugal`** — cheat-sheet + spend audit. Levels:
+`/frugal quiet|normal|strict|off`, persist with `/frugal default <level>`,
+or set `FRUGAL_MODE` / `~/.config/frugal/config.json`.
 
 ## Install
 
@@ -110,7 +110,7 @@ npm package: [`@yuanbopang/frugal`](https://www.npmjs.com/package/@yuanbopang/fr
 /plugin install frugal
 ```
 
-Start a new session; you should see `FRUGAL MODE ACTIVE`.
+Start a new session; you should see `FRUGAL MODE ACTIVE — level: normal`.
 
 ### Codex
 
@@ -183,12 +183,15 @@ Qoder can additionally wire the per-command reminder via
 
 | Piece | Role |
 |---|---|
-| `skills/frugal/SKILL.md` | The ruleset + free-tier cheat-sheet. Single source of truth for all dynamic hosts. |
+| `skills/frugal/SKILL.md` | On-demand cheat-sheet + full rules for explicit `/frugal` asks. |
 | `skills/frugal/references/providers.md` | Full researched quota/plan/trap tables with sources. |
+| `hooks/frugal-config.js` | Mode resolution: env → session flag → config file → `normal`. |
 | `hooks/frugal-runtime.js` | Host detection (env vars) + per-host hook output shapes. |
-| `hooks/frugal-activate.js` | SessionStart: inject the SKILL.md body. |
-| `hooks/frugal-pretool.js` | PreToolUse(Bash): detect billable CLIs via `hooks/providers.js`, throttled reminder (state in tmpdir, keyed by session). |
-| `AGENTS.md` | Compact ruleset — canonical body for the static rule copies and Gemini context. |
+| `hooks/frugal-activate.js` | SessionStart: inject mode-scaled AGENTS.md. |
+| `hooks/frugal-mode-tracker.js` | UserPromptSubmit: `/frugal quiet\|normal\|strict\|off`. |
+| `hooks/frugal-pretool.js` | PreToolUse(Bash): mode-scaled reminder via `providers.js`. |
+| `hooks/providers.js` | Provider table: `brief` / `trap` / `horror` / `dig` layers. |
+| `AGENTS.md` | Compact ruleset — canonical body for static rule copies. |
 | `scripts/check-rule-copies.js` | Drift guard: static copies must equal AGENTS.md. |
 | `scripts/check-versions.js` | All 8 manifests share one version. |
 

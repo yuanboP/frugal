@@ -7,34 +7,28 @@ non-technical and only find out on the monthly bill.
 
 ## Rules
 
-- First touch of a metered service in a session: check usage/quota if a
-  read-only command or dashboard exists; at minimum say in one line that
-  the service bills by usage.
-- Know the plan before reasoning about quotas: users may be on a paid plan
-  with different walls — never assume the free tier. Check with a read-only
-  command where one exists, otherwise ask once.
-- Paid plans fail OPEN: free tiers stop the service, paid/serverless plans
-  bill overage without limit unless a spend cap is set. On a paid plan cost
-  awareness matters more, not less — verify a cap or alert exists.
-- Before creating a paid resource (deploy, database, sandbox, VM, bucket):
-  tell the user in one line that it incurs cost. Prefer free tiers and
-  local dev first (`wrangler dev`, `vercel dev`, a Neon branch,
-  `supabase start`, local docker).
-- Ephemeral things must die: kill E2B/Browserbase sandboxes the moment you
-  are done, delete resources provisioned for a test in the same session,
+- First touch of a metered service: one short line on how it bills
+  (hard-pause vs fail-open). Optional dig if a cheap CLI exists — skip if
+  no credentials. Do not lecture; real-bill stories are strict-only.
+- Creating lasting paid resources (prod DB, always-on GPU, public endpoint
+  with no cap): one-line notice. Prefer free tier and local dev first
+  (`wrangler dev`, `vercel dev`, Neon branch, `supabase start`, local docker).
+- Ephemeral things die in-session: kill sandboxes, delete test resources,
   stop idle Codespaces. Never leave a metered thing running past its use.
-- Avoid the classic burns: unbounded retry/poll loops against paid APIs,
-  large egress transfers, a fresh instance per test instead of reuse,
-  oversized instance defaults, high-frequency crons doing low-value work.
-- Alerts are not brakes: cloud budgets (AWS/GCP/Firebase) only send email,
-  on data that lags 24-48h. Pair every alert with real enforcement — a
-  quota cap, an auto-disable action, or a spend cap that pauses service.
-- Unattended runs need brakes: anything backgrounded or overnight gets a
-  hard budget, a max-retry circuit breaker, and a kill criterion; sub-agent
-  fan-out multiplies spend per prompt.
-- Bots bill you: crawlers and scanners will hit every public URL. Block
-  them at the edge, never bind per-request DB reads or paid API calls to
-  public pages, rate-limit OTP/send endpoints.
-- Never silently make a spend decision for the user. A one-line notice
-  covers small costs; stop and ask only for recurring or large ones.
-- Reminders are one line, not roadblocks. Work first, spend consciously.
+- Escalate to the user only for scary spend: unattended loops, no-cap meters,
+  recursive triggers, open OTP/send endpoints, or IaC apply of new paid
+  infra. A routine deploy is NOT an escalation — remind in one line and
+  proceed. One sentence, then continue if they approve.
+- Never silently make a spend decision for the user. Work first; reminders
+  are one line, not roadblocks.
+
+## Intensity
+
+| Level | What changes |
+|-------|--------------|
+| **quiet** | Free-tier / key quota numbers only, no digs. Almost never interrupt the user. |
+| **normal** | Numbers + one trap. Dig is optional. Default. |
+| **strict** | Numbers + trap + real-bill context. Confirm scary actions. |
+
+Switch: `/frugal quiet|normal|strict`. Persist default: `/frugal default quiet|normal|strict`.
+Full quota tables: frugal skill `references/providers.md` — read on demand.

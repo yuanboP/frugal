@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 // PreToolUse(Bash) hook: when a command touches a metered cloud provider,
-// inject a one-line cost reminder. Once per provider per session, at most
-// 5 reminders per day. Never blocks the command, never hangs, fails silent.
+// inject a mode-scaled cost reminder. Once per provider per session; after
+// 5 reminders in a day, new providers still get a numbers-only brief.
+// Never blocks the command, never hangs, fails silent.
 
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { detectProviders } = require('./providers');
+const { detectProviders, formatReminder } = require('./providers');
+const { getDefaultMode } = require('./frugal-config');
 const { writeHookOutput } = require('./frugal-runtime');
 
 const DAILY_CAP = 5;
@@ -27,12 +29,15 @@ process.stdin.on('data', (d) => { raw += d; });
 process.stdin.on('end', () => {
   let input;
   try {
-    input = JSON.parse(raw.replace(/^﻿/, ''));
+    input = JSON.parse(raw.replace(/^\uFEFF/, ''));
   } catch {
     return finish();
   }
   const command = input && input.tool_input && input.tool_input.command;
   if (!command) return finish();
+
+  const mode = getDefaultMode();
+  if (mode === 'off') return finish();
 
   const hits = detectProviders(command, input);
   if (!hits.length) return finish();
@@ -45,7 +50,9 @@ process.stdin.on('end', () => {
   const today = new Date().toISOString().slice(0, 10);
   let daily = readJson(dailyFile, {});
   if (daily.date !== today) daily = { date: today, count: 0 };
-  if (daily.count >= DAILY_CAP) return finish();
+  // Past the cap, degrade to quiet (numbers only) instead of going silent —
+  // a first touch of a new provider should never pass with zero notice.
+  const capped = daily.count >= DAILY_CAP;
 
   let seen = readJson(sessionFile, []);
   if (!Array.isArray(seen)) seen = [];
@@ -55,9 +62,8 @@ process.stdin.on('end', () => {
   try { fs.writeFileSync(sessionFile, JSON.stringify(seen.concat(fresh.map((h) => h.name)))); } catch {}
   try { fs.writeFileSync(dailyFile, JSON.stringify({ date: today, count: daily.count + 1 })); } catch {}
 
-  const context =
-    fresh.map((h) => `frugal: ${h.name} — ${h.hint}`).join('\n') +
-    '\nCheck the user\'s actual plan and current usage before spending more (full tables: frugal skill references/providers.md).';
+  const lines = fresh.map((h) => formatReminder(h, capped ? 'quiet' : mode)).filter(Boolean);
+  if (!lines.length) return finish();
 
-  finish(context);
+  finish(lines.join('\n'));
 });

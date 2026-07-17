@@ -3,7 +3,12 @@ const assert = require('node:assert');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { detectProviders } = require('../hooks/providers');
+const { detectProviders, formatReminder, PROVIDERS } = require('../hooks/providers');
+const { normalizeMode, filterBodyForMode } = (() => {
+  const config = require('../hooks/frugal-config');
+  const instr = require('../hooks/frugal-instructions');
+  return { normalizeMode: config.normalizeMode, filterBodyForMode: instr.filterBodyForMode };
+})();
 
 const names = (cmd, input) => detectProviders(cmd, input || { cwd: os.tmpdir() }).map((p) => p.name);
 
@@ -17,10 +22,11 @@ test('detects provider CLIs at command position', () => {
   assert.deepStrictEqual(names('fly deploy'), ['Fly.io']);
 });
 
-test('detects sub-services with their own hints', () => {
-  assert.deepStrictEqual(names('wrangler r2 object put bkt/k --file f'), ['Cloudflare', 'Cloudflare R2']);
-  assert.deepStrictEqual(names('wrangler kv key put --binding=S k v'), ['Cloudflare', 'Cloudflare KV']);
-  assert.deepStrictEqual(names('wrangler d1 execute db --command "..."'), ['Cloudflare', 'Cloudflare D1']);
+test('sub-service hit suppresses its base provider', () => {
+  assert.deepStrictEqual(names('wrangler r2 object put bkt/k --file f'), ['Cloudflare R2']);
+  assert.deepStrictEqual(names('wrangler kv key put --binding=S k v'), ['Cloudflare KV']);
+  assert.deepStrictEqual(names('wrangler d1 execute db --command "..."'), ['Cloudflare D1']);
+  assert.deepStrictEqual(names('wrangler deploy'), ['Cloudflare']);
   assert.deepStrictEqual(names('gh workflow run deploy.yml'), ['GitHub Actions']);
   assert.deepStrictEqual(names('gh run watch'), ['GitHub Actions']);
 });
@@ -36,7 +42,9 @@ test('git push triggers Actions reminder only when workflows exist', () => {
 test('detects cross-provider tripwires from pitfall mining', () => {
   assert.deepStrictEqual(names('firebase deploy --only functions'), ['Firebase']);
   assert.deepStrictEqual(names('twilio api:core:messages:create --to +1555'), ['Twilio']);
-  assert.deepStrictEqual(names('runpodctl get pod'), ['GPU cloud']);
+  assert.deepStrictEqual(names('runpodctl get pod'), ['RunPod']);
+  assert.deepStrictEqual(names('modal app list'), ['Modal']);
+  assert.deepStrictEqual(names('vastai show instances'), ['Vast.ai']);
   assert.deepStrictEqual(names('aws logs create-log-group --log-group-name x'), ['Observability/logs', 'AWS']);
 });
 
@@ -71,4 +79,85 @@ test('ignores prose mentions and non-command positions', () => {
   assert.deepStrictEqual(names('gh pr view 12'), []);
   assert.deepStrictEqual(names('terraform plan'), []);
   assert.deepStrictEqual(names(''), []);
+});
+
+test('formatReminder scales by mode (quiet < normal ≤ strict)', () => {
+  const vercel = PROVIDERS.find((p) => p.name === 'Vercel');
+  const quiet = formatReminder(vercel, 'quiet');
+  const normal = formatReminder(vercel, 'normal');
+  const strict = formatReminder(vercel, 'strict');
+  assert.ok(quiet.length < normal.length);
+  assert.ok(normal.length <= strict.length);
+  // brief always carries free-tier NUMBERS, not a vague "it bills"
+  assert.match(quiet, /1M inv/);
+  assert.match(quiet, /100 deploys/);
+  assert.doesNotMatch(quiet, /\$46k/);
+  assert.match(normal, /Spend Management/);
+  assert.doesNotMatch(normal, /\$46k/);
+  assert.match(strict, /\$46k/);
+  // quiet is numbers-only: no dig suggestion; digs start at normal
+  assert.doesNotMatch(quiet, /Optional:/);
+  assert.match(normal, /Optional: `vercel usage`/);
+  assert.equal(formatReminder(vercel, 'off'), null);
+});
+
+test('every provider brief has concrete numbers (not just shape words)', () => {
+  for (const p of PROVIDERS) {
+    assert.ok(p.brief && p.brief.length > 0, p.name + ' missing brief');
+    assert.ok(p.brief.length <= 220, p.name + ' brief too long: ' + p.brief.length);
+    // At least one digit — free-tier / rate / credit. IaC is the soft exception:
+    // "no free-tier" still has no meter number, but the phrase is explicit.
+    if (p.name !== 'IaC provisioning') {
+      assert.match(p.brief, /\d/, p.name + ' brief has no numbers: ' + p.brief);
+    }
+  }
+});
+
+test('session mode off persists instead of falling back to default', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'frugal-mode-'));
+  const saved = process.env.PLUGIN_DATA;
+  const savedEnv = { FRUGAL_MODE: process.env.FRUGAL_MODE, COPILOT: process.env.COPILOT_PLUGIN_DATA };
+  delete process.env.FRUGAL_MODE;
+  delete process.env.COPILOT_PLUGIN_DATA;
+  process.env.PLUGIN_DATA = dir;
+  try {
+    const config = require('../hooks/frugal-config');
+    assert.equal(config.setSessionMode('off'), 'off');
+    assert.equal(config.readSessionMode(), 'off');
+    assert.equal(config.getDefaultMode(), 'off');
+    assert.equal(config.setSessionMode('nope'), null);
+    assert.equal(config.readSessionMode(), 'off');
+    config.setSessionMode('normal');
+    assert.equal(config.readSessionMode(), 'normal');
+  } finally {
+    if (saved === undefined) delete process.env.PLUGIN_DATA;
+    else process.env.PLUGIN_DATA = saved;
+    if (savedEnv.FRUGAL_MODE !== undefined) process.env.FRUGAL_MODE = savedEnv.FRUGAL_MODE;
+    if (savedEnv.COPILOT !== undefined) process.env.COPILOT_PLUGIN_DATA = savedEnv.COPILOT;
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('normalizeMode accepts intensity levels', () => {
+  assert.equal(normalizeMode('quiet'), 'quiet');
+  assert.equal(normalizeMode('NORMAL'), 'normal');
+  assert.equal(normalizeMode('nope'), null);
+});
+
+test('filterBodyForMode keeps only the active intensity row', () => {
+  const body = [
+    '## Intensity',
+    '| Level | What changes |',
+    '|-------|--------------|',
+    '| **quiet** | brief only |',
+    '| **normal** | brief + trap |',
+    '| **strict** | all |',
+    '',
+    'Switch: /frugal',
+  ].join('\n');
+  const filtered = filterBodyForMode(body, 'quiet');
+  assert.match(filtered, /\*\*quiet\*\*/);
+  assert.doesNotMatch(filtered, /\*\*normal\*\*/);
+  assert.doesNotMatch(filtered, /\*\*strict\*\*/);
+  assert.match(filtered, /Switch/);
 });

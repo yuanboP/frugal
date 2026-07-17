@@ -1,2 +1,21 @@
-description = "Show the frugal cost cheat-sheet and audit current spend surface"
-prompt = "Show the frugal cost cheat-sheet: list the metered-provider table from the frugal skill (provider, metered by, how to check usage, cheap alternative). Then scan the current project for anything that likely incurs cloud spend right now (deploy configs, provisioned resources, running sandboxes, crons) and report it in a few lines. {{args}}"
+description = "Frugal cost cheat-sheet, spend audit, or intensity level"
+prompt = """
+If {{args}} is exactly one of: quiet, normal, strict, off — acknowledge the
+level switch (the UserPromptSubmit hook already applied it) in one line and
+stop. If {{args}} starts with "default " plus a level, acknowledge the
+persisted default in one line and stop.
+
+Otherwise show the frugal cost cheat-sheet: list the metered-provider table
+from the frugal skill (provider, metered by, how to check usage, cheap
+alternative). Then scan the current project for anything that likely incurs
+cloud spend right now (deploy configs, provisioned resources, running
+sandboxes, crons) and report it in a few lines.
+
+Intensity reminder for the user:
+- quiet — brief billing shape only
+- normal — brief + one trap (default)
+- strict — brief + trap + real-bill context; confirm scary actions
+- `/frugal default <level>` persists across sessions
+
+Args: {{args}}
+"""

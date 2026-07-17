@@ -419,7 +419,7 @@ Modal Starter: $0/mo + $30/month recurring free compute credits; payment method 
 - Vast bandwidth billed per byte both directions in every state — dataset/checkpoint sync loops surprise-bill; interruptible instances outbid to 'inactive' still bill storage
 - Marketplace numbers rot in days: never trust a written-down Vast price; re-query vastai search offers
 
-**How to check usage**: RunPod: runpodctl pod list (and pod list --all for stopped-but-storing), runpodctl billing; console.runpod.io/user/billing; serverless endpoints only visible in console; GraphQL api.runpod.io/graphql. Modal: modal app list + modal container list (then modal app stop <id>); modal billing CLI / modal.billing API (Team+ only); dashboard modal.com/settings -> Usage & Billing. Vast: vastai show instances (ANY listed row, even stopped, is accruing storage — must be destroyed), vastai show user (balance), vastai show invoices; cloud.vast.ai/billing/. Zero-burn assertion: runpodctl pod list empty + modal app/container list empty + vastai show instances empty.
+**How to check usage**: RunPod: runpodctl get pod (and get pod --allfields for stopped-but-storing), runpodctl billing; console.runpod.io/user/billing; serverless endpoints only visible in console; GraphQL api.runpod.io/graphql. Modal: modal app list + modal container list (then modal app stop <id>); modal billing CLI / modal.billing API (Team+ only); dashboard modal.com/settings -> Usage & Billing. Vast: vastai show instances (ANY listed row, even stopped, is accruing storage — must be destroyed), vastai show user (balance), vastai show invoices; cloud.vast.ai/billing/. Zero-burn assertion: runpodctl get pod empty + modal app/container list empty + vastai show instances empty.
 
 **Unresolved conflicts**
 

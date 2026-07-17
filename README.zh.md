@@ -24,10 +24,16 @@ Agent 部署 Vercel、开 Neon 数据库、跑 E2B 沙箱、一次 push 触发 G
 
 ## 它如何帮你省钱
 
-两层机制，上下文成本都很低（每会话固定约 2KB 规则 + 每天最多 5 条一行提醒，绝不挡路）：
+两层机制，上下文成本都很低（每会话约 1.5KB 规则 + 每天最多 5 条完整提醒，超出后新服务仍有一行纯数字提示，绝不挡路），并带吵闹度档位：
 
-- **会话规则**（SessionStart，常驻）：首次碰服务先查用量、创建付费资源先报备、临时资源必须死、记住告警不是刹车、付费档会 fail open。
-- **按需数据**（PreToolUse，按命令触发）：`vercel` → Vercel 的数字，`wrangler r2` → R2 的数字，仓库有 `.github/workflows/` 时的 `git push` → Actions 分钟数——精确数字只在相关时才出现，每服务每会话一次。
+| 档位 | 注入内容 | 适用 |
+|---|---|---|
+| **quiet** | 只说计费形态 | 懂行、嫌吵 |
+| **normal**（默认） | 形态 + 一个 trap；查用量可选 | 大多数人 |
+| **strict** | + 真实账单金额；危险动作要确认 | 非技术 / vibe coding |
+
+- **会话规则**（SessionStart）：首次碰服务一句话说明计费形态、持久付费资源先报备、临时资源必须死、只在可怕消耗时升级提醒用户。
+- **按需数据**（PreToolUse）：`vercel` / `wrangler r2` / 带 workflows 的 `git push` 等触发短提醒；事故金额只在 **strict**（以及 skill 全文）出现，普通 deploy 不吓人。
 
 这个 skill 的范围是**正常使用但没留意计费方式导致账单起飞**——用错档位、忘了拆的资源、循环打到了付费额度、没人注意到的配置默认值。不处理密钥泄漏或欺诈,那是安全问题,不是成本意识问题。frugal 内化的 272 条 X 真实事故里几个代表案例，以及现在会先拦住它们的检测点：
 
@@ -35,7 +41,7 @@ Agent 部署 Vercel、开 Neon 数据库、跑 E2B 沙箱、一次 push 触发 G
 |---|---|---|
 | **$36,000/月** | Cloudflare 队列自循环（3.13B 次 KV 写入） | `wrangler` → "CF 全线无硬顶——警惕递归" |
 | **$104,000** | Netlify 爆红流量账单（改革前） | `netlify` → 讲清 credit 制度与硬暂停 |
-| **$46,000** | 爆红流量打到 Vercel，Bot Protection 默认关闭 | `vercel` → Bot Protection 免费但默认关 |
+| **$46,000** | 爆红流量打到 Vercel，Spend Management 只发了邮件 | `vercel` → Spend Management 默认只通知——要开 auto-pause |
 | **$25,672** | GCP 花费冲破 $10 预算（告警滞后 24-48h） | 规则：**告警不是刹车**——要配额硬顶配合 |
 | **约 $700/月** | agent push 循环在 macOS runner 上跑全量 CI | 带 workflows 的 `git push` → timeout-minutes + concurrency + macOS 约 10 倍价 |
 | **$5,000/月** | 100 用户规模下 Firestore useEffect 读循环 | `firebase` → 按读计费 + maxInstances + 递归检查 |
@@ -43,9 +49,10 @@ Agent 部署 Vercel、开 Neon 数据库、跑 E2B 沙箱、一次 push 触发 G
 
 ## 它做什么
 
-- **会话规则**（SessionStart 注入，~2KB）：首次碰计费服务先查用量；创建付费资源前一句话告知；临时资源必须死；告警不是刹车（云预算只发邮件且数据滞后 24-48h）；付费档 fail open——超额账单无上限，先确认消费上限存在。
-- **命令级即时提醒**（PreToolUse）：shell 命令碰到计费 CLI 时，一行带真实数字的提醒进入 agent 上下文——每服务每会话一次，每天最多 5 次，绝不挡路。检测到子服务级：`wrangler r2`、`gh workflow run`、带 workflows 的 `git push`、环境里有 `ANTHROPIC_API_KEY` 时跑 `claude`。
-- **真实数据**：22 组服务的免费额度/各档配额/超额单价，2026-07 双引擎调研（Claude 网络检索 + grok CLI 并行、交叉验证、官方 pricing 页优先）；272 条 X 真实踩坑事故内化为检测规则（全部经现行计费模式核验）。完整表格见 [`skills/frugal/references/`](skills/frugal/references/)，原始调研档案见 [`research/`](research/)。
+- **会话规则**（SessionStart，按档位裁剪）：计费形态一句话；持久付费资源报备；临时资源当场杀；可怕消耗才打断用户。
+- **命令级即时提醒**（PreToolUse）：碰到计费 CLI 注入短提醒——每服务每会话一次，每天最多 5 条完整提醒（超出降为纯数字一行）。`normal` = 形态 + 一个 trap；`quiet` 只有数字；`strict` 才带 $ 故事。查用量命令 normal 起可选。
+- **档位**：`/frugal quiet|normal|strict|off`，`/frugal default <level>`，或 `FRUGAL_MODE` / `~/.config/frugal/config.json`。
+- **真实数据**：22 组服务配额表仍在 skill 里按需读；272 条 X 事故作研究底座，不再默认塞进每次 deploy。完整表格见 [`skills/frugal/references/`](skills/frugal/references/)。
 
 ## 安装
 

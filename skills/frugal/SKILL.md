@@ -24,52 +24,26 @@ money that is not yours.
 
 ## Rules
 
-- **First touch of a metered service in a session**: if a read-only
-  usage/quota command or dashboard exists, check it (or tell the user how to);
-  at minimum say in one line that this service bills by usage.
-- **Know the plan before reasoning about quotas.** Users may be on a paid
-  plan with different walls — never assume the free tier. Determine the plan
-  with a read-only command where one exists, otherwise ask once; then reason
-  against THAT plan's quotas (full plan tables: `references/providers.md`).
-- **Paid plans fail OPEN.** Free tiers fail closed (service stops — annoying,
-  costs nothing). Paid/serverless plans fail open: overage bills scale
-  without limit unless a spend cap is set. On a paid plan, cost awareness
-  matters MORE, not less — first check whether a spend cap or alert exists
-  and is actually on.
-- **Before creating a paid resource** (deploy, database, sandbox, VM, bucket):
-  tell the user in one line that it incurs cost. Prefer free tiers and local
-  dev first — `wrangler dev`, `vercel dev`, a Neon branch instead of a new
-  project, `supabase start`, a local `docker run postgres`.
-- **Ephemeral things must die**: kill E2B/Browserbase sandboxes the moment
-  you are done, delete resources you provisioned for a test in the same
-  session, stop idle Codespaces. Never leave a metered thing running past
-  its use.
-- **Cost anti-patterns to avoid**: unbounded retry/poll loops against paid
-  APIs (polling also defeats DB autosuspend and keeps serverless functions
-  warm — it bills THREE ways), large egress transfers, provisioning a fresh
-  instance per test instead of reusing one, oversized instance defaults,
-  high-frequency crons doing low-value work.
-- **Alerts are not brakes.** AWS/GCP/Firebase budgets only send email, on
-  billing data that lags 24-48h — victims with alerts configured still
-  burned $25k+ past a $10 budget. Pair every alert with real enforcement:
-  quota caps, auto-disable actions, or a spend cap that pauses service.
-- **Unattended runs need brakes.** Background/overnight agent work gets a
-  hard budget, a max-retry circuit breaker (200+ retries of one failing
-  call is a documented pattern), and a kill criterion; sub-agent fan-out
-  multiplies token spend per prompt.
-- **Bots bill you.** Crawlers and scanners hit every public URL — Googlebot
-  alone generated 68M Firestore reads on one site. Block bot traffic at the
-  edge, never bind per-request DB reads or paid API calls to public pages,
-  rate-limit OTP/send endpoints.
-- **Pricing models change under you.** On any unexplained bill jump, check
-  the provider's pricing changelog BEFORE debugging your own code
-  (Cloudflare Workflows added per-step billing 2026-08; SendGrid killed its
-  free tier; Supabase repriced compute).
-- **Never silently make a spend decision for the user.** A one-line notice
-  is enough for small costs; stop and ask only for recurring or large costs
-  (new paid plan, production database, `terraform apply` on real infra).
-- **Do not become a roadblock**: reminders are one line, not endless
-  confirmations. Work first, spend consciously.
+- **First touch**: one short line on how it bills (hard-pause vs fail-open).
+  Optional dig if a cheap CLI exists — skip if no credentials. Do not lecture.
+- **Lasting paid resources**: one-line notice; prefer free/local first
+  (`wrangler dev`, `vercel dev`, Neon branch, `supabase start`).
+- **Ephemeral dies in-session**: sandboxes, test resources, idle Codespaces.
+- **Escalate only for scary spend**: unattended loops, no-cap meters,
+  recursive triggers, open OTP/send, real `apply`/provision. One sentence.
+- **Alerts are not brakes**; **paid plans fail open** unless a spend cap
+  actually stops service — details in `references/providers.md`.
+- **Never silently spend for the user.** Work first; one-line reminders.
+
+## Intensity
+
+| Level | Inject |
+|-------|--------|
+| **quiet** | Free-tier / key quota numbers only |
+| **normal** (default) | Numbers + one trap; dig optional |
+| **strict** | + real-bill dollar context; confirm scary actions |
+
+`/frugal quiet|normal|strict|off` · `/frugal default <level>` · `FRUGAL_MODE`
 
 ## Free-tier cheat-sheet (researched 2026-07)
 
@@ -82,7 +56,7 @@ GPU, observability) in this skill.
 | Provider | Free tier key numbers | What blows first | Check usage |
 |---|---|---|---|
 | Vercel | 1M edge reqs, 1M invocations, 360 GB-hr memory, 100 GB transfer, 100 deploys/day; non-commercial only | deploy cap in agent loops; memory GB-hrs — bills through I/O waits, so LLM streaming/polling burns it with zero CPU | `vercel usage` |
-| Cloudflare | per-DAY quotas, hard-fail: 100k Worker reqs + 10ms CPU; KV 1k writes; D1 100k writes; R2 10 GB storage + $0 egress | KV's 1,000 writes/day — minutes under load | dashboard Billable Usage; `wrangler d1 info` |
+| Cloudflare | per-DAY quotas, hard-fail: 100k Worker reqs + 10ms CPU; KV 1k writes; D1 100k writes; R2 10 GB storage + $0 egress | KV's 1k writes/day — minutes under load | dashboard Billable Usage; `wrangler d1 info` |
 | Neon | 100 CU-hr/mo/project, 0.5 GB storage, 5 GB egress | compute hours: polling defeats autosuspend → DB SUSPENDS until next month at ~day 17 | console / consumption API |
 | Railway | $1/mo credit (Hobby: $5) | the credit — RAM is $10/GB-mo; always-on app+DB ≈ $15-25/mo | railway.com/workspace/usage |
 | Fly.io | NO free tier; trial = 2 VM-hours total | trial gone in 2h always-on; `fly launch` silently creates 2 machines | `fly machine list` + dashboard |
@@ -99,7 +73,7 @@ GPU, observability) in this skill.
 | Auth (Clerk/Auth0/Firebase) | 50K MRU / 25K MAU (bots COUNT) / 50K MAU | phone-OTP is a second, easy-to-miss meter — SMS bills per message on top of MAU | provider dashboards |
 | Maps (Google/Mapbox) | per-SKU free calls (10K/5K/1K, NOT pooled); Mapbox 50K loads | unrestricted client keys, map remounts; NO caps on either | GCP console / Mapbox stats |
 | AI APIs (OpenAI/Anthropic/Replicate) | Anthropic: tier ceiling (real cap); OpenAI: alerts only; Replicate: credit | env API key flips agent CLIs to per-token billing without warning | `claude /status`; console usage pages |
-| GPU (RunPod/Modal/Vast) | prepaid balance = de facto cap UNTIL auto-top-up; Modal $30/mo credit | idle pods, warm min_containers, stop != destroy | `runpodctl pod list` / `modal app list` / `vastai show instances` |
+| GPU (RunPod/Modal/Vast) | prepaid balance = de facto cap UNTIL auto-top-up; Modal $30/mo credit | idle pods, warm min_containers, stop != destroy | `runpodctl get pod` / `modal app list` / `vastai show instances` |
 | Observability (Datadog/CloudWatch/Sentry) | DD/CW: NO caps (alerts only); Sentry 5K errors/mo | tracesSampleRate 1.0, ID metric tags, Never-Expire retention | DD usage monitors / CW billing |
 | Media/vector (Cloudinary/Pinecone/Upstash) | 25 credits / 2 GB + 1M RU / 500K cmds | legacy Pinecone pods $81+/mo idle; Upstash hard cap exists but OFF | dashboards; `cld admin usage` |
 
