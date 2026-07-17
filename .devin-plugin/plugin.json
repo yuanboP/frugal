@@ -1,0 +1,9 @@
+{
+  "name": "frugal",
+  "version": "0.2.0",
+  "description": "Cloud cost awareness for agents. Check usage before spending on metered services; tear down what you provision.",
+  "author": "Aaron Pang",
+  "repository": "https://github.com/PangYuanbo/frugal",
+  "license": "MIT",
+  "keywords": ["cost", "billing", "cloud", "agents"]
+}

@@ -1,0 +1,16 @@
+{
+  "_comment": "Reference template — copy the 'hooks' object into your .qoder/settings.json or ~/.qoder/settings.json. Replace FRUGAL_DIR with the path to your frugal checkout. The static rules copy in .qoder/rules/ already covers the ruleset; this adds the per-command billing reminder.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|bash|shell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node FRUGAL_DIR/hooks/frugal-pretool.js"
+          }
+        ]
+      }
+    ]
+  }
+}

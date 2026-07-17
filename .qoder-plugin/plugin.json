@@ -1,0 +1,11 @@
+{
+  "name": "frugal",
+  "version": "0.2.0",
+  "description": "Cloud cost awareness for agents.",
+  "author": {
+    "name": "Aaron Pang"
+  },
+  "skills": "./skills/",
+  "rules": "./.qoder/rules/",
+  "hooks": "./hooks/qoder-hooks.json"
+}

@@ -1,0 +1,19 @@
+{
+  "name": "frugal",
+  "version": "0.2.0",
+  "description": "Cloud cost awareness for agents. Reminds the agent to check usage/billing before spending on metered services and to tear down what it provisions.",
+  "author": {
+    "name": "Aaron Pang"
+  },
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
+  "interface": {
+    "displayName": "Frugal",
+    "shortDescription": "Cloud cost awareness for agents",
+    "longDescription": "Metered cloud services (Vercel, Cloudflare, Neon, Railway, E2B, Browserbase, GitHub Actions...) silently bill by usage. Frugal injects cost-awareness rules at session start and drops a one-line reminder the moment a command touches a billable CLI — check usage first, announce paid resources, tear down test infra.",
+    "developerName": "Aaron Pang",
+    "category": "Productivity",
+    "capabilities": ["Instructions", "Lifecycle hooks"],
+    "defaultPrompt": ["/frugal"]
+  }
+}

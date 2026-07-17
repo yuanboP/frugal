@@ -1,9 +1,28 @@
 {
   "name": "frugal",
-  "version": "0.1.0",
-  "description": "Cloud cost awareness plugin for Claude Code",
+  "version": "0.2.0",
+  "description": "Cloud cost awareness plugin for coding agents (Claude Code, Codex, Copilot, Qoder, Gemini CLI, OpenCode, pi, Cursor, Windsurf, Cline, Kiro)",
   "license": "MIT",
+  "repository": "github:PangYuanbo/frugal",
+  "keywords": ["cost", "billing", "cloud", "agents", "opencode-plugin", "pi-package", "skills"],
+  "type": "commonjs",
+  "main": "./.opencode/plugins/frugal.mjs",
+  "exports": "./.opencode/plugins/frugal.mjs",
+  "pi": {
+    "extensions": ["./pi-extension/index.js"],
+    "skills": ["./skills"]
+  },
+  "files": [
+    "hooks/",
+    "skills/",
+    "commands/",
+    ".opencode/",
+    ".qoder/",
+    "pi-extension/",
+    "AGENTS.md",
+    "LICENSE"
+  ],
   "scripts": {
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js && node scripts/check-rule-copies.js && node scripts/check-versions.js"
   }
 }

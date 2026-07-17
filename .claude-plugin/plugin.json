@@ -1,6 +1,6 @@
 {
   "name": "frugal",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Cloud cost awareness for agents. Reminds the agent to check usage/billing before spending on metered services (Vercel, Cloudflare, Neon, Railway, E2B, Browserbase, AWS...) and to tear down what it provisions.",
   "author": {
     "name": "Aaron Pang"

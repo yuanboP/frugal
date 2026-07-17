@@ -7,9 +7,10 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { detectProviders } = require('./providers');
+const { writeHookOutput } = require('./frugal-runtime');
 
-function finish(payload) {
-  if (payload) process.stdout.write(JSON.stringify(payload));
+function finish(context) {
+  if (context) writeHookOutput('PreToolUse', context);
   process.exit(0);
 }
 
@@ -27,7 +28,7 @@ process.stdin.on('end', () => {
   const command = input && input.tool_input && input.tool_input.command;
   if (!command) return finish();
 
-  const hits = detectProviders(command);
+  const hits = detectProviders(command, input);
   if (!hits.length) return finish();
 
   // ponytail: throttle state lives in tmpdir keyed by session_id — the OS
@@ -47,5 +48,5 @@ process.stdin.on('end', () => {
     '\nBefore spending more: check current usage/spend if a read-only command or dashboard exists, ' +
     'tell the user in one line if this action incurs real cost, and tear down anything you provision for testing.';
 
-  finish({ hookSpecificOutput: { hookEventName: 'PreToolUse', additionalContext: context } });
+  finish(context);
 });
